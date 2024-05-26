@@ -463,38 +463,55 @@ void OnTick()
            if (bollFlag == false)
            {
               SellCounter++;
+              
               double LotS = NormalizeDouble(FullBiasFactor * MaxLotSize, 2);
-              OrderSend(Symbol(), OP_SELL, LotS, BidPrice, 3, 0, 0, "SellOrder", 6969, clrNONE);
-              ArrayResize(SellArray, SellCounter);
-              ArrayResize(SellLotsArray, SellCounter);
-              ArrayResize(SellDateArray, SellCounter);
-              SellDateArray[SellCounter-1] = date;
-              SellArray[SellCounter-1] = BidPrice;
-              SellLotsArray[SellCounter-1] = LotS;
-                       
-              string name = OSName + (SellCounter-1) + ':' + date;
-              ArrowDownCreate(0,name,0,date,SellArray[SellCounter-1],OSAnchor,OSColor,OSStyle,OSWidth,OSBack,OSSelection,OSHidden,OSZOrder);
-              bollFlag = true;
+
+              bool result = AttemptToPlaceOrder(LotS, OP_SELL, "BB Sell Order");
+              if (!result) {
+                    Print("Failed to place the order through the automated function.");
+                    SellCounter--;
+              }
+              else{
+                    ArrayResize(SellArray, SellCounter);
+                    ArrayResize(SellLotsArray, SellCounter);
+                    ArrayResize(SellDateArray, SellCounter);
+                    SellDateArray[SellCounter-1] = date;
+                    SellArray[SellCounter-1] = BidPrice;
+                    SellLotsArray[SellCounter-1] = LotS;
+                             
+                    string name = OSName + (SellCounter-1) + ':' + date;
+                    ArrowDownCreate(0,name,0,date,SellArray[SellCounter-1],OSAnchor,OSColor,OSStyle,OSWidth,OSBack,OSSelection,OSHidden,OSZOrder);
+                    bollFlag = true;
+              }
            }
+           BullBias = 0.0;
            break;
          case -1:
            if (bollFlag == false)
            {
               BuyCounter++;
-              double LotB = NormalizeDouble(BiasFactor * MaxLotSize, 2);
-              LotB = NormalizeDouble(BiasFactor * MaxLotSize, 2);
-              OrderSend(Symbol(), OP_BUY, LotB, AskPrice, 3, 0, 0, "BuyOrder", 6969, clrNONE);
-              ArrayResize(BuyArray, BuyCounter);
-              ArrayResize(BuyLotsArray, BuyCounter);
-              ArrayResize(BuyDateArray, BuyCounter);
-              BuyArray[BuyCounter-1] = AskPrice;
-              BuyLotsArray[BuyCounter-1] = LotB;
-              BuyDateArray[BuyCounter-1] = date;
-                       
-              name = OBName + (BuyCounter-1) + ':' + date;
-              ArrowUpCreate(0,name,0,date,BuyArray[BuyCounter-1],OBAnchor,OBColor,OBStyle,OBWidth,OBBack,OBSelection,OBHidden,OBZOrder);
-              bollFlag = true;
+              double LotB = NormalizeDouble(FullBiasFactor * MaxLotSize, 2);
+              result = AttemptToPlaceOrder(LotB, OP_BUY, "BB Buy Order");
+              if (!result) {
+                    Print("Failed to place the order through the automated function.");
+                    BuyCounter--;
+              }
+              else
+              {
+                    OrderSend(Symbol(), OP_BUY, LotB, AskPrice, 3, 0, 0, "BuyOrder", 6969, clrNONE);
+                    ArrayResize(BuyArray, BuyCounter);
+                    ArrayResize(BuyLotsArray, BuyCounter);
+                    ArrayResize(BuyDateArray, BuyCounter);
+                    BuyArray[BuyCounter-1] = AskPrice;
+                    BuyLotsArray[BuyCounter-1] = LotB;
+                    BuyDateArray[BuyCounter-1] = date;
+                             
+                    name = OBName + (BuyCounter-1) + ':' + date;
+                    ArrowUpCreate(0,name,0,date,BuyArray[BuyCounter-1],OBAnchor,OBColor,OBStyle,OBWidth,OBBack,OBSelection,OBHidden,OBZOrder);
+                    bollFlag = true;
+              }
            }
+           BearBias = 0.0;
            break;
          default:
            bollFlag = false;
@@ -527,23 +544,30 @@ void OnTick()
            {
                LotB = NormalizeDouble(0.01, 2);
            }
-           if (!IsEnoughBuyMargin(LotB))
-           {
-                 Print("Not Enough Margin To Place Buy Order");
+           //if (!IsEnoughBuyMargin(LotB))
+           //{
+                 //Print("Not Enough Margin To Place Buy Order");
+           //}
+           //else
+           //{
+           result = AttemptToPlaceOrder(LotB, OP_BUY, "Initial Buy Order");
+           if (!result) {
+                Print("Failed to place the order through the automated function.");
+                BuyCounter--;
            }
            else
            {
-           OrderSend(Symbol(), OP_BUY, LotB, AskPrice, 3, 0, 0, "BuyOrder", 6969, clrNONE);
-           ArrayResize(BuyArray, BuyCounter);
-           ArrayResize(BuyLotsArray, BuyCounter);
-           ArrayResize(BuyDateArray, BuyCounter);
-           BuyArray[BuyCounter-1] = AskPrice;
-           BuyLotsArray[BuyCounter-1] = LotB;
-           BuyDateArray[BuyCounter-1] = date;
-                 
-           name = OBName + (BuyCounter-1) + ':' + date;
-           ArrowUpCreate(0,name,0,date,BuyArray[BuyCounter-1],OBAnchor,OBColor,OBStyle,OBWidth,OBBack,OBSelection,OBHidden,OBZOrder);
+                 ArrayResize(BuyArray, BuyCounter);
+                 ArrayResize(BuyLotsArray, BuyCounter);
+                 ArrayResize(BuyDateArray, BuyCounter);
+                 BuyArray[BuyCounter-1] = AskPrice;
+                 BuyLotsArray[BuyCounter-1] = LotB;
+                 BuyDateArray[BuyCounter-1] = date;
+                       
+                 name = OBName + (BuyCounter-1) + ':' + date;
+                 ArrowUpCreate(0,name,0,date,BuyArray[BuyCounter-1],OBAnchor,OBColor,OBStyle,OBWidth,OBBack,OBSelection,OBHidden,OBZOrder);
            }
+           //}
        }
        //Initiate Sell Order
        LotS = NormalizeDouble(BearBias * NormalizeDouble(MinLotSize, 2), 2);
@@ -570,23 +594,30 @@ void OnTick()
            {
                LotS = NormalizeDouble(0.01, 2);
            }
-           if (!IsEnoughSellMargin(LotS))
-           {
-                 Print("Not Enough Margin To Place Sell Order");
+           //if (!IsEnoughSellMargin(LotS))
+           //{
+                 //Print("Not Enough Margin To Place Sell Order");
+           //}
+           //else
+           //{
+           result = AttemptToPlaceOrder(LotS, OP_SELL, "Initial Sell Order");
+           if (!result) {
+                 Print("Failed to place the order through the automated function.");
+                 SellCounter--;
            }
            else
            {
-           OrderSend(Symbol(), OP_SELL, LotS, BidPrice, 3, 0, 0, "SellOrder", 6969, clrNONE);
-           ArrayResize(SellArray, SellCounter);
-           ArrayResize(SellLotsArray, SellCounter);
-           ArrayResize(SellDateArray, SellCounter);
-           SellDateArray[SellCounter-1] = date;
-           SellArray[SellCounter-1] = BidPrice;
-           SellLotsArray[SellCounter-1] = LotS;
-                 
-           name = OSName + (SellCounter-1) + ':' + date;
-           ArrowDownCreate(0,name,0,date,SellArray[SellCounter-1],OSAnchor,OSColor,OSStyle,OSWidth,OSBack,OSSelection,OSHidden,OSZOrder);
+                 ArrayResize(SellArray, SellCounter);
+                 ArrayResize(SellLotsArray, SellCounter);
+                 ArrayResize(SellDateArray, SellCounter);
+                 SellDateArray[SellCounter-1] = date;
+                 SellArray[SellCounter-1] = BidPrice;
+                 SellLotsArray[SellCounter-1] = LotS;
+                       
+                 name = OSName + (SellCounter-1) + ':' + date;
+                 ArrowDownCreate(0,name,0,date,SellArray[SellCounter-1],OSAnchor,OSColor,OSStyle,OSWidth,OSBack,OSSelection,OSHidden,OSZOrder);
            }
+           //}
        }
        // Set current take profit levels based on the average buy or sell price 
        double TakeProfitBuy = AverageEntryPrice(BuyArray, BuyLotsArray, BuyCounter) +  NormalizeDouble(TakeProfitPips*Point*MathPow(1.01, BuyCounter-1), 2);
@@ -684,9 +715,10 @@ void OnTick()
            //}
               
            // Trigger Buy Order
-           if (!IsEnoughBuyMargin(LotB))
-           {
-                 Print("Not Enough Margin To Place Buy Order");
+           result = AttemptToPlaceOrder(LotB, OP_BUY, "Stacked Buy Order");
+           if (!result) {
+                Print("Failed to place the order through the automated function.");
+                BuyCounter--;
            }
            else
            {
@@ -740,9 +772,10 @@ void OnTick()
            //}
               
            // Trigger Sell Order
-           if (!IsEnoughSellMargin(LotS))
-           {
-                 Print("Not Enough Margin To Place Sell Order");
+           result = AttemptToPlaceOrder(LotS, OP_SELL, "Initial Sell Order");
+           if (!result) {
+                 Print("Failed to place the order through the automated function.");
+                 SellCounter--;
            }
            else
            {
@@ -884,6 +917,54 @@ double OnTester()
 }
 
 //////////////////// FUNCTIONS /////////////////////////////////////
+bool AttemptToPlaceOrder(double desiredLotSize, int orderType, string comment) {
+    int magicNumber = 6969;  // Define a unique magic number for this EA
+    double price = (orderType == OP_BUY) ? Ask : Bid;  // Choose the correct price based on order type
+
+    // Ensure price and rates are up-to-date
+    RefreshRates();
+
+    // Try to place order with desired lot size
+    int ticket = OrderSend(Symbol(), orderType, desiredLotSize, price, 3, 0, 0, comment, magicNumber, 0, (orderType == OP_BUY) ? clrGreen : clrRed);
+    if (ticket < 0) {
+        Print("OrderSend failed with error: ", GetLastError());
+
+        // If the order fails, check if it's due to lot size issues
+        if (GetLastError() == 134 || GetLastError() == 148) { // Error 134 is not enough money, 148 is max exposure
+            double maxLots = CalculateMaxLots();
+
+            if (maxLots >= 0.01) { // Check if we can place the minimum lot size
+                // Adjust lot size to a valid value and reattempt the order
+                double adjustedLotSize = MathMax(NormalizeDouble(maxLots, 2), 0.01);
+                ticket = OrderSend(Symbol(), orderType, adjustedLotSize, price, 3, 0, 0, comment + " Adjusted", magicNumber, 0, (orderType == OP_BUY) ? clrGreen : clrRed);
+                if (ticket < 0) {
+                    Print("Adjusted OrderSend failed with error: ", GetLastError());
+                    return false;
+                } else {
+                    Print("Order placed successfully with adjusted lot size: ", adjustedLotSize);
+                    return true;
+                }
+            } else {
+                Print("Not enough margin to place any trade.");
+                return false;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        Print("Order placed successfully with desired lot size: ", desiredLotSize);
+        return true;
+    }
+}
+
+// Calculate maximum allowable lots based on free margin and margin required per lot
+double CalculateMaxLots() {
+    double marginPerLot = MarketInfo(Symbol(), MODE_MARGINREQUIRED);
+    double freeMargin = AccountFreeMargin();
+    double maxLots = freeMargin / marginPerLot;
+    return NormalizeDouble(maxLots, 2);  // Adjust decimal places as needed
+}
+
 //+------------------------------------------------------------------+
 //| Calculate Bollinger Bands and determine indicator value          |
 //+------------------------------------------------------------------+
